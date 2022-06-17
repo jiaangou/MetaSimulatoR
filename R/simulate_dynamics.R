@@ -48,10 +48,10 @@ simulate_dynamics <- function(initial_df, r, alpha, delta, timesteps, disp_rate 
     #   select(-sp_names)
     #
 
-    #apply general_BH to each cell (single iteration)
+    #apply bh_competition to each cell (single iteration)
     comp <- out[[i-1]]%>%
       select(sp_names)%>%
-      apply(., 1, function(x)general_BH(r = r,  #applies function to each row (i.e. cell)
+      apply(., 1, function(x)bh_competition(r = r,  #applies function to each row (i.e. cell)
                                         alpha = alpha,
                                         timesteps = 1,
                                         discrete = stochastic, #if stochastic is TRUE, then discrete individuals are used (w/ Poisson)
