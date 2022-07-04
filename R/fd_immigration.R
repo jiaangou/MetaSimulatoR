@@ -3,7 +3,7 @@
 #' @description Applies weights to each neighborhood cell and distributes emigrants to each accordingly
 
 #' @param neighborhood_df neighborhood data with, patch ID, coordinates (x,y) and species densities
-#' @param disp_inds number immigrants to distribute (for each species)
+#' @param emigrants number immigrants to distribute (for each species)
 #' @param delta coefficients determining strength of frequency-dependence
 #' @param discrete whether or not immigrants should be distributed as discrete individuals
 
@@ -12,12 +12,13 @@
 #' @import dplyr
 #' @import plyr
 #' @import tidyr
+#' #import MetaSimulatoR::weighted_freq
 #' @export
 
 
 
 #FUNCTION: Returns neighborhood with new immigrants ----
-fd_immigration <- function(neighborhood_df, disp_inds, delta, discrete = FALSE, no_spp = 2){
+fd_immigration <- function(neighborhood_df, emigrants, delta, discrete = FALSE, no_spp = 2){
 
   # require(dplyr)
   # require(plyr)
@@ -27,10 +28,12 @@ fd_immigration <- function(neighborhood_df, disp_inds, delta, discrete = FALSE, 
   sp_names <- paste0("N", 1:no_spp)
 
 
+
   #If dispersing individuals are 0, then return neighborhood_df with 0s
-  if(sum(disp_inds) == 0){
+  if(sum(emigrants) == 0){
 
     neighborhood_df[,sp_names] <- 0
+
     immi <- neighborhood_df
 
 
@@ -50,9 +53,11 @@ fd_immigration <- function(neighborhood_df, disp_inds, delta, discrete = FALSE, 
     }
 
     #Calculate weights for each species in the neighborhood
+
+
+
     weights <- neighborhood_df%>%
-      select(sp_names)%>%
-      apply(., 2, function(x)weighted_freq(x, delta = delta))
+      mutate_at(sp_names, .funs = function(x)weighted_freq(N = x, delta = delta))
 
 
     ##############################################
@@ -60,11 +65,16 @@ fd_immigration <- function(neighborhood_df, disp_inds, delta, discrete = FALSE, 
     ##############################################
     if(discrete == TRUE){
 
+
+      #Make weights long for discrete call
+      weights <- weights%>%
+        pivot_longer(cols = sp_names, names_to = 'Species', values_to = 'weights')
+
       ########### BUG #########################
       ########### BUG: number of inds  #########################
-      #Iterates disp_inds and weights simultaneously
+      #Iterates emigrants and weights simultaneously
 
-      immi <- purrr::map2(.x = disp_inds,
+      immi <- purrr::map2(.x = emigrants,
                           .y = weights%>%split(col(.)),
                           .f = function(x,y)sample(neighborhood_df$ID, size = x, prob = y, replace = TRUE))%>%
         lapply(function(x)count(x))%>%
@@ -91,7 +101,7 @@ fd_immigration <- function(neighborhood_df, disp_inds, delta, discrete = FALSE, 
     ##############################################
     else{
       #Multiple frequencies with disp inds
-      immi <- weights%*%diag(disp_inds)%>%
+      immi <- weights%*%diag(emigrants)%>%
         as.data.frame()%>%
         setNames(sp_names)%>%
         cbind(neighborhood_df%>%select(-sp_names),.)%>%
