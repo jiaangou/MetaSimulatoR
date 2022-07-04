@@ -13,12 +13,16 @@
 #' @param stochastic If TRUE, denisities are discretized and the process is stochastic
 
 
-simulate_dynamics <- function(initial_df, r, alpha, delta, timesteps, disp_rate = 0.1, nh_size = 1,
-                              nh = "vonNeumann", dd_emi = FALSE,  torus = TRUE, stochastic = FALSE){
+#' @import dplyr
+#' @import tidyr
+#' @export
 
-  require(dplyr)
-  options(dplyr.summarise.inform = FALSE)
-  require(tidyr)
+simulate_dynamics <- function(initial_df, r, alpha, delta, timesteps, disp_rate = 0.1, nh_size = 1,
+                              nh = "vonNeumann", stochastic = FALSE, dd_emi = FALSE,  torus = TRUE){
+
+  # require(dplyr)
+  # options(dplyr.summarise.inform = FALSE)
+  # require(tidyr)
 
   #Species names
   sp_names <- paste0('N', 1:length(r))
@@ -73,6 +77,7 @@ simulate_dynamics <- function(initial_df, r, alpha, delta, timesteps, disp_rate 
 
 
     #3. Immigrate --------------------
+    #Calculate neighborhood just once (doing it every time slows the process)
     immi <- purrr::map2(emi$x, emi$y, .f = function(x,y)neighborhood(x = x, y = y, df = out[[i-1]],
                                                                      nh_size = nh_size,
                                                                      neighborhood = nh,
